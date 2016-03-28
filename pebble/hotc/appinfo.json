@@ -1,0 +1,82 @@
+{
+    "appKeys": {},
+    "capabilities": [
+        ""
+    ],
+    "companyName": "paul6325106",
+    "longName": "HOTC",
+    "projectType": "native",
+    "resources": {
+        "media": [
+            {
+                "file": "images/menu.png",
+                "menuIcon": true,
+                "name": "IMAGE_MENU",
+                "type": "png"
+            },
+            {
+                "file": "images/emotions-10.png",
+                "name": "IMAGE_EMOTION_10",
+                "type": "png"
+            },
+            {
+                "file": "images/emotions-09.png",
+                "name": "IMAGE_EMOTION_09",
+                "type": "png"
+            },
+            {
+                "file": "images/emotions-08.png",
+                "name": "IMAGE_EMOTION_08",
+                "type": "png"
+            },
+            {
+                "file": "images/emotions-07.png",
+                "name": "IMAGE_EMOTION_07",
+                "type": "png"
+            },
+            {
+                "file": "images/emotions-06.png",
+                "name": "IMAGE_EMOTION_06",
+                "type": "png"
+            },
+            {
+                "file": "images/emotions-05.png",
+                "name": "IMAGE_EMOTION_05",
+                "type": "png"
+            },
+            {
+                "file": "images/emotions-04.png",
+                "name": "IMAGE_EMOTION_04",
+                "type": "png"
+            },
+            {
+                "file": "images/emotions-03.png",
+                "name": "IMAGE_EMOTION_03",
+                "type": "png"
+            },
+            {
+                "file": "images/emotions-02.png",
+                "name": "IMAGE_EMOTION_02",
+                "type": "png"
+            },
+            {
+                "file": "images/emotions-01.png",
+                "name": "IMAGE_EMOTION_01",
+                "type": "png"
+            },
+            {
+                "file": "images/emotions-00.png",
+                "name": "IMAGE_EMOTION_00",
+                "type": "png"
+            }
+        ]
+    },
+    "sdkVersion": "2",
+    "shortName": "HOTC",
+    "uuid": "2c9cf92f-3138-4741-b130-cd2af08b2210",
+    "versionCode": 1,
+    "versionLabel": "0.1",
+    "watchapp": {
+        "watchface": false
+    }
+}
