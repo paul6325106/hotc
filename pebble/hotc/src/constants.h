@@ -1,0 +1,9 @@
+#pragma once
+
+#define KEY_MOOD 1
+#define KEY_EPOCH 2
+#define KEY_RESULT 3
+
+#define INTERVAL_MS_DELAY 5000
+#define INTERVAL_MS_REPEAT 500
+#define INTERVAL_MS_TIMEOUT 10000

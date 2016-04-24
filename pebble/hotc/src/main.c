@@ -1,103 +1,59 @@
 #include <pebble.h>
 #include <inttypes.h>
 #include "main.h"
+#include "constants.h"
+#include "mood.h"
+#include "app_message.h"
 
-#define NUM_KEY_MOOD 1
-#define NUM_DEFAULT_MOOD 0
+static void init();
+static void deinit();
+static void window_load(Window *window);
+static void update_image(uint32_t resource_id);
+static void window_unload(Window *window);
+static void click_config_provider(void *context);
+static void up_click_handler(ClickRecognizerRef recognizer, void *context);
+static void down_click_handler(ClickRecognizerRef recognizer, void *context);
+static void select_click_handler(ClickRecognizerRef recognizer, void *context);
 
 static Window *window;
-Layer *window_layer;
-
+static Layer *window_layer;
 static TextLayer *text_layer;
 static GBitmap *bitmap;
 static BitmapLayer *bitmap_layer;
 
-static const uint32_t IMAGE_IDS[] = {
-    RESOURCE_ID_IMAGE_EMOTION_01,
-    RESOURCE_ID_IMAGE_EMOTION_02,
-    RESOURCE_ID_IMAGE_EMOTION_03,
-    RESOURCE_ID_IMAGE_EMOTION_04,
-    RESOURCE_ID_IMAGE_EMOTION_05,
-    RESOURCE_ID_IMAGE_EMOTION_06,
-    RESOURCE_ID_IMAGE_EMOTION_07,
-    RESOURCE_ID_IMAGE_EMOTION_08,
-    RESOURCE_ID_IMAGE_EMOTION_09,
-    RESOURCE_ID_IMAGE_EMOTION_10
-};
-
-static const int IMAGE_MAX = 9;
-
-static int mood = NUM_DEFAULT_MOOD;
-
-static void set_mood(int delta)
+static void init()
 {
-    // modulo operation on mood value
-    int shifted = mood + delta;
-    if (shifted < 0)
-    {
-        mood = IMAGE_MAX;
-    }
-    else if (shifted > IMAGE_MAX)
-    {
-        mood = 0;
-    }
-    else
-    {
-        mood = shifted;
-    }
+    init_mood();
     
-    // deinit old image
-    gbitmap_destroy(bitmap);
-    bitmap_layer_destroy(bitmap_layer);
+    window = window_create();
+    window_set_click_config_provider(window, click_config_provider);
+    window_set_window_handlers(window, (WindowHandlers) {
+        .load = window_load,
+        .unload = window_unload,
+    });
+    window_stack_push(window, true);
     
-    // init new image
-    bitmap = gbitmap_create_with_resource(IMAGE_IDS[mood]);
-    bitmap_layer = bitmap_layer_create(GRect(12, 0, 120, 120));
-    bitmap_layer_set_compositing_mode(bitmap_layer, GCompOpAssign);
-    bitmap_layer_set_bitmap(bitmap_layer, bitmap);
-    layer_add_child(window_layer, bitmap_layer_get_layer(bitmap_layer));
-}
-
-int main(void)
-{
-    init();
+    init_app_message(text_layer);
     
     APP_LOG(
         APP_LOG_LEVEL_DEBUG,
         "Done initializing, pushed window: %p",
         window
     );
-    
-    app_event_loop();
-    deinit();
 }
 
-static void select_click_handler(ClickRecognizerRef recognizer, void *context)
+static void deinit()
 {
-    unsigned int epoch = time(NULL);
+    deinit_mood();
+    
+    deinit_app_message();
+    
+    window_destroy(window);
+    
     APP_LOG(
         APP_LOG_LEVEL_DEBUG,
-        "mood id: %d, epoch: %u",
-        mood, epoch
+        "Done deinitializing"
     );
-    // TODO send data to companion app
-}
-
-static void up_click_handler(ClickRecognizerRef recognizer, void *context)
-{
-    set_mood(1);
-}
-
-static void down_click_handler(ClickRecognizerRef recognizer, void *context)
-{
-    set_mood(-1);
-}
-
-static void click_config_provider(void *context)
-{
-    window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
-    window_single_click_subscribe(BUTTON_ID_UP, up_click_handler);
-    window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
 }
 
 static void window_load(Window *window)
@@ -105,12 +61,43 @@ static void window_load(Window *window)
     window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_bounds(window_layer);
     
-    text_layer = text_layer_create(GRect(0, 120, bounds.size.w, 20));
-    text_layer_set_text(text_layer, "How are you feeling?");
+    #if defined(PBL_ROUND)
+    
+    // image is 120 by 120 and in centre, text is curved around image
+    unsigned int indent_h = (bounds.size.h - 120) / 2;
+    unsigned int indent_w = (bounds.size.w - 120) / 2;
+    bitmap_layer = bitmap_layer_create(GRect(indent_w, indent_h, 120, 120));
+    // TODO different layout for round: face in centre, curved text "How are you feeling?" around face
+    text_layer = text_layer_create(GRect(0, 0, 0, 0));
+    
+    #else
+    
+    // image is 120 by 120, text is under image and 20 high
+    unsigned int indent_h = (bounds.size.h - 140) / 2;
+    unsigned int indent_w = (bounds.size.w - 120) / 2;
+    bitmap_layer = bitmap_layer_create(GRect(indent_w, indent_h, 120, 120));
+    text_layer = text_layer_create(GRect(indent_w, indent_h + 120, 120, 20));
+    
+    #endif
+    
+    // bitmap layer settings
+    bitmap_layer_set_compositing_mode(bitmap_layer, GCompOpSet);
+    layer_add_child(window_layer, bitmap_layer_get_layer(bitmap_layer));
+    
+    // text layer settings
+    text_layer_set_text(text_layer, "How do you feel?");
     text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
     layer_add_child(window_layer, text_layer_get_layer(text_layer));
     
-    set_mood(0);
+    update_image(get_mood_image_id());
+}
+
+static void update_image(uint32_t resource_id)
+{
+    gbitmap_destroy(bitmap);
+    bitmap = gbitmap_create_with_resource(resource_id);
+    bitmap_layer_set_bitmap(bitmap_layer, bitmap);
+    layer_add_child(window_layer, bitmap_layer_get_layer(bitmap_layer));    
 }
 
 static void window_unload(Window *window)
@@ -120,24 +107,43 @@ static void window_unload(Window *window)
     bitmap_layer_destroy(bitmap_layer);
 }
 
-static void init(void)
+static void click_config_provider(void *context)
 {
-    mood = persist_exists(NUM_KEY_MOOD)
-        ? persist_read_int(NUM_KEY_MOOD)
-        : NUM_DEFAULT_MOOD;
+    window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
     
-    window = window_create();
-    window_set_click_config_provider(window, click_config_provider);
-    window_set_window_handlers(window, (WindowHandlers) {
-        .load = window_load,
-        .unload = window_unload,
-    });
-    const bool animated = true;
-    window_stack_push(window, animated);
+    window_single_repeating_click_subscribe(
+        BUTTON_ID_UP,
+        INTERVAL_MS_REPEAT,
+        up_click_handler
+    );
+    
+    window_single_repeating_click_subscribe(
+        BUTTON_ID_DOWN,
+        INTERVAL_MS_REPEAT,
+        down_click_handler
+    );
 }
 
-static void deinit(void)
+static void up_click_handler(ClickRecognizerRef recognizer, void *context)
 {
-    persist_write_int(NUM_KEY_MOOD, mood);
-    window_destroy(window);
+    increment_mood();
+    update_image(get_mood_image_id());
+}
+
+static void down_click_handler(ClickRecognizerRef recognizer, void *context)
+{
+    decrement_mood();
+    update_image(get_mood_image_id());
+}
+
+static void select_click_handler(ClickRecognizerRef recognizer, void *context)
+{
+    send_app_message(write_mood_dict);
+}
+
+int main()
+{
+    init();
+    app_event_loop();
+    deinit();
 }
